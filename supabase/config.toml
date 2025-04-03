@@ -1,0 +1,10 @@
+project_id = "local"
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[storage]
+enabled = false
