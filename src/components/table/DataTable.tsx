@@ -1,32 +1,37 @@
-import { useState } from 'react';
-import { Registro } from '../../hooks/useTableData';
+import { Registro } from '../types';
 import { TableRow } from './TableRow';
-import { CellModal } from './CellModal';
 
-interface Props {
+interface DataTableProps {
   registros: Registro[];
-  onSalvar: (row: Omit<Registro, 'id'>) => void;
+  onSalvar: (registro: Partial<Registro> & { id: string }) => void;
+  onExcluir: (id: string) => void;
+  onOpenTJSPModal: (registro: Registro) => void;
   selectedIds: string[];
-  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>;
-  onOpenTJSPModal?: (registro: Registro) => void;
+  setSelectedIds: (ids: string[]) => void;
 }
 
-export const DataTable = ({ registros, onSalvar, selectedIds, setSelectedIds, onOpenTJSPModal }: Props) => {
-  const [registroEditando, setRegistroEditando] = useState<Registro | null>(null);
-  const [campoEditando, setCampoEditando] = useState<keyof Omit<Registro, 'id'> | null>(null);
-
-  const handleEditar = (registro: Registro, campo: keyof Omit<Registro, 'id'>) => {
-    setRegistroEditando(registro);
-    setCampoEditando(campo);
+export const DataTable = ({
+  registros,
+  onSalvar,
+  onExcluir,
+  onOpenTJSPModal,
+  selectedIds,
+  setSelectedIds,
+}: DataTableProps) => {
+  const toggleSelecionado = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((i) => i !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
   };
 
   return (
-    <>
-    <div className="w-full flex justify-center">
-    <table className="border-collapse border table-auto">
-        <thead className="bg-white">
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse border">
+        <thead className="bg-gray-100">
           <tr>
-            <th className="border px-3 py-2 text-base text-center">
+            <th className="border px-3 py-2 text-center">
               <input
                 type="checkbox"
                 checked={registros.every((r) => selectedIds.includes(r.id))}
@@ -39,63 +44,32 @@ export const DataTable = ({ registros, onSalvar, selectedIds, setSelectedIds, on
                 }}
               />
             </th>
-            {[
-              'Assistente',
-              'Réu',
-              'TJSP',
-              'STF/STJ',
-              'Tribunal',
-              'Situação',
-              'Decisão',
-              'Resumo',
-              'Movimentação',
-              'Link',
-            ].map((label) => (
-              <th key={label} className="border px-3 py-2 text-base text-left bg-gray-100">
-                {label}
-              </th>
-            ))}
+            <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Assistente</th>
+            <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Réu</th>
+            <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">TJSP</th>
+            <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Superior</th>
+            <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Tribunal</th>
+            <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Situação</th>
+            <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Decisão</th>
+            <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Resumo</th>
+            <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Movimentação</th>
+            <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Link</th>
           </tr>
         </thead>
         <tbody>
-          {registros.map((r) => (
+          {registros.map((registro) => (
             <TableRow
-              key={r.id}
-              registro={r}
-              selecionado={selectedIds.includes(r.id)}
-              onSelecionar={() =>
-                setSelectedIds((prev) =>
-                  prev.includes(r.id) ? prev.filter((id) => id !== r.id) : [...prev, r.id]
-                )
-              }
-              onEditar={handleEditar}
+              key={registro.id}
+              registro={registro}
               onSalvar={onSalvar}
+              onExcluir={onExcluir}
               onOpenTJSPModal={onOpenTJSPModal}
+              selecionado={selectedIds.includes(registro.id)}
+              toggleSelecionado={() => toggleSelecionado(registro.id)}
             />
           ))}
         </tbody>
       </table>
-      </div>
-      {registroEditando && campoEditando && (
-        <CellModal
-          campo={campoEditando}
-          valor={registroEditando[campoEditando] ?? ''}
-          onClose={() => {
-            setCampoEditando(null);
-            setRegistroEditando(null);
-          }}
-          onSave={(novoValor) => {
-            const atualizado = {
-              ...registroEditando,
-              [campoEditando]: novoValor,
-            };
-            onSalvar(atualizado);
-            setCampoEditando(null);
-            setRegistroEditando(null);
-          }}
-        />
-      )}
-    </>
+    </div>
   );
-  
 };
