@@ -35,20 +35,19 @@ export const useTableData = () => {
   };
 
   const addMultiplosProcessos = async (
-    numeros: string[],
-    dadosComuns: Omit<Registro, 'id' | 'processo_tjsp'>
+    dados: { numero: string; tribunal: string }[],
+    dadosExtras: Omit<Registro, 'id' | 'processo_tjsp' | 'tribunal'>
   ) => {
-    const lista = numeros.filter((num) => num.length > 0);
-  
-    const novosRegistros = lista.map((processo) => ({
-      ...dadosComuns,
-      processo_tjsp: processo,
+    const novosRegistros = dados.map(({ numero, tribunal }) => ({
+      ...dadosExtras,
+      processo_tjsp: numero,
+      tribunal,
     }));
   
     const { data, error } = await supabase
       .from('registros_processos')
       .insert(novosRegistros)
-      .select(); // ✅ necessário para retornar os registros criados
+      .select();
   
     return { data, error };
   };

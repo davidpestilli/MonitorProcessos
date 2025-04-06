@@ -6,6 +6,7 @@ interface DataTableProps {
   onSalvar: (registro: Partial<Registro> & { id: string }) => void;
   onExcluir: (id: string) => void;
   onOpenTJSPModal: (registro: Registro) => void;
+  onEditarCampo: (registro: Registro, campo: keyof Registro) => void;
   selectedIds: string[];
   setSelectedIds: (ids: string[]) => void;
 }
@@ -15,6 +16,7 @@ export const DataTable = ({
   onSalvar,
   onExcluir,
   onOpenTJSPModal,
+  onEditarCampo,
   selectedIds,
   setSelectedIds,
 }: DataTableProps) => {
@@ -27,7 +29,7 @@ export const DataTable = ({
   };
 
   return (
-    <div className="overflow-x-auto">
+    <div>
       <table className="w-full border-collapse border">
         <thead className="bg-gray-100">
           <tr>
@@ -44,7 +46,8 @@ export const DataTable = ({
                 }}
               />
             </th>
-            <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Assistente</th>
+            <th className="border px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide">SEQ</th>
+            <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Gap</th>
             <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Réu</th>
             <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">TJSP</th>
             <th className="border px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Superior</th>
@@ -57,13 +60,15 @@ export const DataTable = ({
           </tr>
         </thead>
         <tbody>
-          {registros.map((registro) => (
+          {registros.map((registro, index) => (
             <TableRow
               key={registro.id}
+              index={index}
               registro={registro}
               onSalvar={onSalvar}
               onExcluir={onExcluir}
               onOpenTJSPModal={onOpenTJSPModal}
+              onEditarCampo={onEditarCampo}
               selecionado={selectedIds.includes(registro.id)}
               toggleSelecionado={() => toggleSelecionado(registro.id)}
             />

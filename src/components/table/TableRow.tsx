@@ -1,5 +1,3 @@
-// TableRow.tsx atualizado: checkbox com onChange e texto normal na coluna TJSP
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -19,18 +17,22 @@ interface Registro {
 
 interface TableRowProps {
   registro: Registro;
+  index: number;
   onSalvar: (registro: Partial<Registro> & { id: string }) => void;
   onExcluir: (id: string) => void;
   onOpenTJSPModal: (registro: Registro) => void;
+  onEditarCampo: (registro: Registro, campo: keyof Registro) => void;
   selecionado: boolean;
   toggleSelecionado: () => void;
 }
 
 export const TableRow = ({
   registro,
+  index,
   onSalvar,
   onExcluir,
   onOpenTJSPModal,
+  onEditarCampo,
   selecionado,
   toggleSelecionado,
 }: TableRowProps) => {
@@ -51,7 +53,28 @@ export const TableRow = ({
     };
 
     onSalvar(atualizado);
-    toast.success('Registro atualizado');
+
+    const campoFormatado: { [key in keyof Registro]?: { label: string; color: string; emoji: string } } = {
+      assistente: { label: 'Assistente', color: 'text-blue-600', emoji: '🧑‍💼' },
+      reu: { label: 'Réu', color: 'text-red-600', emoji: '⚖️' },
+      processo_tjsp: { label: 'TJSP', color: 'text-purple-600', emoji: '📄' },
+      processo_superior: { label: 'Superior', color: 'text-purple-500', emoji: '📁' },
+      tribunal: { label: 'Tribunal', color: 'text-indigo-600', emoji: '🏛️' },
+      situacao: { label: 'Situação', color: 'text-yellow-600', emoji: '📌' },
+      decisao: { label: 'Decisão', color: 'text-green-600', emoji: '✅' },
+      resumo: { label: 'Resumo', color: 'text-gray-700', emoji: '📝' },
+      movimentacao: { label: 'Movimentação', color: 'text-orange-600', emoji: '📦' },
+      link: { label: 'Link', color: 'text-cyan-600', emoji: '🔗' },
+    };
+
+    const info = campoFormatado[editingField] || { label: 'Campo', color: 'text-green-600', emoji: '✅' };
+
+    toast.success(
+      <span>
+        {info.emoji} Registro de <span className={`${info.color} font-semibold`}>{info.label}</span> atualizado com sucesso
+      </span>
+    );
+
     setEditingField(null);
     setEditingValue('');
   };
@@ -80,6 +103,8 @@ export const TableRow = ({
         <input type="checkbox" checked={selecionado} onChange={toggleSelecionado} />
       </td>
 
+      <td className="border px-3 py-2 text-center text-sm font-mono">{index + 1}</td>
+
       {campos.map((campo) => (
         <td
           key={campo}
@@ -87,9 +112,11 @@ export const TableRow = ({
           onClick={() => {
             if (campo === 'processo_tjsp') {
               onOpenTJSPModal(registro);
-              return;
+            } else if (['decisao', 'resumo', 'movimentacao'].includes(campo)) {
+              onEditarCampo(registro, campo);
+            } else if (!['tribunal', 'situacao'].includes(campo)) {
+              abrirEdicao(campo);
             }
-            abrirEdicao(campo);
           }}
         >
           {editingField === campo ? (

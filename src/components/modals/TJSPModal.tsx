@@ -1,4 +1,4 @@
-// Código do TJSPModal.tsx com número separado em estado permanente
+// Código do TJSPModal.tsx com suporte a IDs temporários
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../services/supabaseClient';
@@ -14,13 +14,28 @@ interface TJSPRegistro {
   isNew?: boolean;
 }
 
-interface TJSPModalProps {
-  registroId: string;
-  onClose: () => void;
-  onSaveDetails: (detail: { decisao: string; movimentacao: string; numero?: string }) => void;
+interface Registro {
+  id: string;
+  assistente: string;
+  reu: string;
+  processo_tjsp: string;
+  processo_superior: string;
+  tribunal: string;
+  situacao: string;
+  decisao: string;
+  resumo: string;
+  movimentacao: string;
+  link: string;
 }
 
-export const TJSPModal = ({ registroId, onClose, onSaveDetails }: TJSPModalProps) => {
+interface TJSPModalProps {
+  registro: Registro;
+  onClose: () => void;
+  onSaveDetails: (detail: { decisao: string; movimentacao: string; numero?: string }) => void;
+  onSaveRegistroTemp: (registro: Registro) => Promise<Registro>;
+}
+
+export const TJSPModal = ({ registro, onClose, onSaveDetails, onSaveRegistroTemp }: TJSPModalProps) => {
   const [rows, setRows] = useState<TJSPRegistro[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editingRow, setEditingRow] = useState<TJSPRegistro | null>(null);
@@ -29,7 +44,9 @@ export const TJSPModal = ({ registroId, onClose, onSaveDetails }: TJSPModalProps
   const [numeroInput, setNumeroInput] = useState('');
   const [numeroSalvo, setNumeroSalvo] = useState('');
 
-  const fetchDetalhes = async () => {
+  const limparNumeroProcesso = (numero: string) => numero.replace(/\D/g, '');
+
+  const fetchDetalhes = async (registroId: string) => {
     const { data, error } = await supabase
       .from('detalhes_tjsp')
       .select('*')
@@ -43,8 +60,10 @@ export const TJSPModal = ({ registroId, onClose, onSaveDetails }: TJSPModalProps
   };
 
   useEffect(() => {
-    fetchDetalhes();
-  }, [registroId]);
+    if (!registro.id.startsWith('temp-')) {
+      fetchDetalhes(registro.id);
+    }
+  }, [registro.id]);
 
   const handleAddRow = () => {
     const tempId = 'temp-' + Math.random().toString(36).substring(2, 9);
@@ -96,7 +115,17 @@ export const TJSPModal = ({ registroId, onClose, onSaveDetails }: TJSPModalProps
   };
 
   const handleSalvarTodos = async () => {
-    const novos = rows.filter((r) => r.isNew);
+    let registroId = registro.id;
+
+    if (registro.id.startsWith('temp-')) {
+      const salvo = await onSaveRegistroTemp(registro);
+      registroId = salvo.id;
+    }
+
+    const novos = rows.filter((r) => r.id.startsWith('temp-'));
+    const outros = rows.filter((r) => !r.id.startsWith('temp-'));
+    
+    
 
     if (novos.length > 0) {
       const payload = novos.map((r) => ({
@@ -106,16 +135,33 @@ export const TJSPModal = ({ registroId, onClose, onSaveDetails }: TJSPModalProps
         movimentacao: r.movimentacao,
       }));
 
-      const { error } = await supabase.from('detalhes_tjsp').insert(payload);
+      const { data: inseridos, error } = await supabase.from('detalhes_tjsp').insert(payload).select();
       if (error) {
         toast.error('Erro ao salvar os detalhes.');
         return;
       }
+      
+      setRows([
+        ...inseridos.map((r: any) => ({
+          id: String(r.id),
+          data: r.data,
+          decisao: r.decisao,
+          movimentacao: r.movimentacao,
+        })),
+        ...outros,
+      ]);
+           
     }
 
     toast.success('Detalhes salvos com sucesso');
-    onSaveDetails(getLatestDetail());
-    onClose();
+
+    // Espera atualização completa do estado antes de enviar para o pai
+    setTimeout(() => {
+      onSaveDetails(getLatestDetail());
+      onClose();
+    }, 0);
+    
+
   };
 
   const handleSalvarNumero = () => {
@@ -138,9 +184,6 @@ export const TJSPModal = ({ registroId, onClose, onSaveDetails }: TJSPModalProps
         <div className="mb-6 flex flex-wrap items-center gap-6">
           <button onClick={handleAddRow} className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 transition flex items-center gap-2">
             <Plus size={16} /> Adicionar Linha
-          </button>
-          <button onClick={() => setShowNumeroModal(true)} className="px-4 py-2 bg-purple-600 text-white rounded text-sm font-medium hover:bg-purple-700 transition flex items-center gap-2">
-            <Hash size={16} /> Número
           </button>
           {selectedIds.length > 0 && (
             <button onClick={handleDeleteSelected} className="px-4 py-2 bg-red-600 text-white rounded text-sm font-medium hover:bg-red-700 transition flex items-center gap-2">
